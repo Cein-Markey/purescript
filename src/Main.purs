@@ -1,55 +1,44 @@
-module Data.AddressBook where
+module Data.ChapterFour where
 
+import Data.Foldable
 import Prelude
+import Data.Path
+import Data.Array
 
-import Control.Plus (empty)
-import Data.List (List(..), filter, head, null, nubBy)
-import Data.Maybe (Maybe)
-import Data.Show (show)
+import Control.MonadZero (guard)
+import Data.Maybe (isJust)
 
-type Entry =
-  { firstName :: String
-  , lastName  :: String
-  , address   :: Address
-  }
+square arr = map (\n -> n * n) arr
+removeNegatives arr = filter (\n -> n > -1) arr
 
-type Address =
-  { street :: String
-  , city   :: String
-  , state  :: String
-  }
+pairs n = concatMap (\i -> map (\j -> [i, j]) (i .. n)) (1 .. n)
 
-type AddressBook = List Entry
+factors n = filter (
+  \pair -> product pair == n
+  ) (pairs n)
 
-showEntry :: Entry -> String
-showEntry entry = entry.lastName <> ", " <>
-                  entry.firstName <> ": " <>
-                  showAddress entry.address
+factorsDo :: Int -> Array (Array Int)
+factorsDo n = filter (\xs -> product xs == n) $ do
+  i <- 1 .. n
+  j <- i .. n
+  pure [i, j]
 
-showAddress :: Address -> String
-showAddress addr = addr.street <> ", " <>
-                   addr.city <> ", " <>
-                   addr.state
+factorsGuard :: Int -> Array (Array Int)
+factorsGuard n = do
+  i <- 1 .. n
+  j <- i .. n
+  guard $ i * j == n
+  pure [i, j]
 
-emptyBook :: AddressBook
-emptyBook = empty
+fact :: Int -> Int -> Int
+fact 0 acc = acc
+fact n acc = fact (n - 1) (acc * n)
 
-insertEntry :: Entry -> AddressBook -> AddressBook
-insertEntry = Cons
+isPrime :: Int -> Boolean
+isPrime n = n `mod` 2 /= 0
 
-findEntry :: String -> String -> AddressBook -> Maybe Entry
-findEntry street city book = head $ filter filterEntry book
-  where
-    filterEntry :: Entry -> Boolean
-    filterEntry entry = entry.address.street == street && entry.address.city == city
+allFiles :: Path -> Array Path
+allFiles file = file : do
+  child <- ls file
+  allFiles child
 
-printEntry street city book = map showEntry (findEntry street city book)
-
-doesEntryExist :: String -> String -> AddressBook -> Boolean
-doesEntryExist firstName lastName book = null $ filter filterAddressBook book
-  where
-    filterAddressBook :: Entry -> Boolean
-    filterAddressBook entry = entry.firstName == firstName && entry.lastName == lastName
-
-removeDuplicates :: String -> String -> AddressBook -> AddressBook
-removeDuplicates firstName lastName book = nubBy (\x y -> x.firstName == firstName || x.lastName == lastName ) book
